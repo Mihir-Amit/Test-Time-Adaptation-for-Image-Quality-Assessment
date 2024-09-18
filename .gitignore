@@ -1,0 +1,131 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+env/
+venv/
+ENV/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# PyInstaller
+#  Usually these files are written by a python script from a template
+#  before PyInstaller builds the exe, so as to inject date/other infos into it.
+*.manifest
+*.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints
+
+# pyenv
+.python-version
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# PyCharm
+.idea/
+
+# VS Code
+.vscode/
+
+# Virtual environment files
+env/
+venv/
+*.env
+*.venv
+env.bak/
+venv.bak/
+
+# PyTorch model checkpoints
+*.pt
+*.pth
+checkpoints/
+
+# Logs
+logs/
+*.log
+
+# Data
+DatasetsKONIQ/
+*.csv
+*.json
+*.h5
+*.db
+*.jpg
+
+Datasets/
+*.csv
+*.json
+*.h5
+*.db
+*.jpg
+# TensorBoard log files
+runs/
+events.out.tfevents.*
+
+# Cache directories and files
+.cache/
+*.pkl
+
+# Docker
+*.log
+*.pid
+*.sock
+__pycache__
+*.db
+
+# Ignore model weights
+*.h5
+*.ckpt
+*.onnx
+
+# Ignore dataset files
+data/raw/
+data/processed/
+
+# Ignore output and result directories
+output/
+results/
+
+# Datasets (e.g., large datasets like ImageNet)
+datasets/
