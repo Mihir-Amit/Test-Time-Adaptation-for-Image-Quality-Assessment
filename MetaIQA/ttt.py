@@ -252,7 +252,7 @@ class METAIQASolver(object):
         self.model.train(False)
 
         if pretrained:
-            self.model.load_state_dict(torch.load('/home/mihir-rahul/Desktop/btp/TID2013_KADID10K_IQA_Meta_resnet18_38'))
+            self.model.load_state_dict(torch.load('model_IQA/TID2013_KADID10K_IQA_Meta_resnet18_38'))
 
         pred_scores = []
         gt_scores = []
@@ -569,7 +569,7 @@ class METAIQASolver(object):
 
 
         if config.online:
-            self.model.load_state_dict(torch.load('/home/mihir-rahul/Desktop/btp/TID2013_KADID10K_IQA_Meta_resnet18_38'))
+            self.model.load_state_dict(torch.load('model_IQA/TID2013_KADID10K_IQA_Meta_resnet18_38'))
 
         steps = 0
 
@@ -589,12 +589,12 @@ class METAIQASolver(object):
             # print(img.shape)
             # exit()
             if not config.online:
-                self.model.load_state_dict(torch.load('/home/mihir-rahul/Desktop/btp/TID2013_KADID10K_IQA_Meta_resnet18_38'))
+                self.model.load_state_dict(torch.load('model_IQA/TID2013_KADID10K_IQA_Meta_resnet18_38'))
 
             label = torch.as_tensor(label.cuda()).requires_grad_(False)
 
             old_net = copy.deepcopy(self.model)
-            old_net.load_state_dict(torch.load('/home/mihir-rahul/Desktop/btp/TID2013_KADID10K_IQA_Meta_resnet18_38'))
+            old_net.load_state_dict(torch.load('model_IQA/TID2013_KADID10K_IQA_Meta_resnet18_38'))
 
 
             if config.group_contrastive:
@@ -607,7 +607,7 @@ class METAIQASolver(object):
             elif config.rank or config.blur or config.comp or config.nos or config.contrastive or config.rotation:
                 loss_hist = self.adapt(data_dict, config, old_net, batch)
 
-            old_net.load_state_dict(torch.load('/home/mihir-rahul/Desktop/btp/TID2013_KADID10K_IQA_Meta_resnet18_38'))
+            old_net.load_state_dict(torch.load('model_IQA/TID2013_KADID10K_IQA_Meta_resnet18_38'))
 
             self.model.eval()
             old_net.eval()
