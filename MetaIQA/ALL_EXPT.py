@@ -4,14 +4,18 @@ import time
 def main(s1,s2):
     t = []
     t.append(time.time())
-    os.system(f'{s1} {s2} --test')
+    print("test starting: ")
     t.append(time.time() - t[0])
+    print("rank only: ")
     os.system(f'{s1} {s2} --rank')
     t.append(time.time() - t[0])
+    print("gc: ")
     os.system(f'{s1} {s2} --group_contrastive')
     t.append(time.time() - t[0])
+    print("rank + gc: ")
     os.system(f'{s1} {s2} --rank --group_contrastive')
     t.append(time.time() - t[0])
+    print("rotation: ")
     os.system(f'{s1} {s2} --rotation')
     t.append(time.time() - t[0])
 

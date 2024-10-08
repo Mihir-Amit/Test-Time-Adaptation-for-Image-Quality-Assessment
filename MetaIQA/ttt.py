@@ -5,7 +5,7 @@ import copy
 from torchvision import models
 import os
 from torch.utils.data.dataloader import default_collate
-
+from torch.nn.functional import cosine_similarity
 import math
 
 from torch.autograd import Variable
@@ -25,6 +25,33 @@ warnings.filterwarnings("ignore")
 import random
 use_gpu = True
 Image.LOAD_TRUNCATED_IMAGES = True
+
+import torch.nn.functional as F
+
+def cosine_similarity(x1, x2):
+    """
+    Compute the cosine similarity between two tensors.
+    
+    Args:
+        x1 (torch.Tensor): First tensor.
+        x2 (torch.Tensor): Second tensor.
+        
+    Returns:
+        float: Cosine similarity between x1 and x2.
+    """
+    # print(x1)
+    # print(x2)
+    # exit()
+    x1 = x1.flatten()
+    x2 = x2.flatten()
+
+
+
+    # Compute cosine similarity
+    cos_sim = F.cosine_similarity(x1.unsqueeze(0), x2.unsqueeze(0))
+    # print(cos_sim)
+    return cos_sim.item()
+
 
 class BaselineModel1(nn.Module):
     def __init__(self, num_classes, keep_probability, inputsize):
@@ -137,7 +164,43 @@ def my_collate(batch):
     return default_collate(batch)
 
 
+class LayerwiseEarlyStopping:
+    def __init__(self, model, patience=5, threshold=0.5):
+        self.patience = patience
+        self.threshold = threshold
+        self.layer_counters = {name: 0 for name, _ in model.named_modules() if isinstance(_, nn.BatchNorm2d)}
+        self.previous_outputs = {}
+        self.previous_gradients = {}
 
+    def __call__(self, model):
+        
+        stop_layers = []
+        for name, layer in model.named_modules():
+            if isinstance(layer, nn.BatchNorm2d):
+                if name not in self.previous_outputs:
+                    self.previous_outputs[name] = None
+                    self.previous_gradients[name] = None
+                    continue
+
+                current_output = layer.output.detach()
+                current_gradient = layer.weight.grad.detach() if layer.weight.grad is not None else None
+
+                if self.previous_outputs[name] is not None and self.previous_gradients[name] is not None:
+                    output_similarity = cosine_similarity(current_output.view(-1), self.previous_outputs[name].view(-1), dim=0)
+                    gradient_similarity = cosine_similarity(current_gradient.view(-1), self.previous_gradients[name].view(-1), dim=0)
+
+                    if output_similarity > self.threshold and gradient_similarity > self.threshold:
+                        self.layer_counters[name] += 1
+                        if self.layer_counters[name] >= self.patience:
+                            stop_layers.append(name)
+                    else:
+                        self.layer_counters[name] = 0
+
+                self.previous_outputs[name] = current_output
+                self.previous_gradients[name] = current_gradient
+        # print(stop_layers)
+        return stop_layers
+    
 class METAIQASolver(object):
     """Solver for training and testing hyperIQA"""
     def __init__(self, config, path, train_idx, test_idx):
@@ -174,6 +237,14 @@ class METAIQASolver(object):
         self.test_data = test_loader.get_data()
 
         self.rank_loss = nn.BCELoss()
+
+        # self.layer_losses = {name: [] for name, layer in self.ssh.ext.named_modules() if isinstance(layer, nn.BatchNorm2d)}
+        # self.layer_avg_losses = {name: None for name in self.layer_losses.keys()}  # Use self.layer_losses here
+        # self.loss_hist = []  # Track overall loss history
+        # self.stop_layer_training = {name: False for name in self.layer_losses.keys()}
+
+        self.layer_gradients = {name: [] for name, layer in self.ssh.ext.named_modules() if isinstance(layer, nn.BatchNorm2d)}
+        self.layer_avg_gradients = {name: None for name in self.layer_gradients.keys()}
 
 
     def test(self,svPath,seed,pretrained=True):
@@ -221,10 +292,11 @@ class METAIQASolver(object):
 
         return test_srcc, test_plcc
 
-    def adapt(self, data_dict, config, old_net):
-
+    def adapt(self, data_dict, config, old_net, batch):
+        # self.early_stopping = LayerwiseEarlyStopping(self.model, patience=5, threshold=0.95)
         inputs = data_dict['image']
-
+        # print(inputs.shape)
+        # exit()
         f_low = []
         f_high = []
 
@@ -310,6 +382,7 @@ class METAIQASolver(object):
 
         m = nn.Sigmoid()
 
+
         for param in self.ssh.parameters():
             param.requires_grad = False
 
@@ -322,8 +395,6 @@ class METAIQASolver(object):
             self.ssh.ext.train()
         else:
             self.ssh.train()
-
-        loss_hist = []
 
         for iteration in range(config.niter):
 
@@ -377,13 +448,125 @@ class METAIQASolver(object):
                 loss = nn.CrossEntropyLoss()(outputs_ssh, labels_ssh.cuda())
 
             loss.backward()
-            self.optimizer_ssh.step()
-            loss_hist.append(loss.detach().cpu())
+            # stop_layers = self.early_stopping(self.model)
+            
+            # if stop_layers:
+            #     print(f"Early stopping triggered for layers: {stop_layers}")
+            #     for layer_name in stop_layers:
+            #         layer = dict(self.model.named_modules())[layer_name]
+            #         for param in layer.parameters():
+            #             param.requires_grad = False
 
-        # print(loss_hist)
-        return loss_hist
+            # Update parameters
+            # self.optimizer_ssh.step()
+            # self.optimizer_ssh.zero_grad()
+
+            # if len(stop_layers) == len(list(self.model.named_modules())):
+            #     print("All layers stopped. Ending adaptation.")
+            #     break
+
+        # return self.layer_gradients, self.layer_avg_gradients
+        # self.loss_hist.append(loss.detach().cpu().item()) 
+        # for name, layer in self.ssh.ext.named_modules():
+        #     if isinstance(layer, nn.BatchNorm2d):
+        #         layer_loss = loss.detach().cpu().item()
+        #         self.layer_losses[name].append(layer_loss)
+
+        #         # Check if we should stop early for this layer
+        #         if self.should_stop_early_cosine(self.layer_losses[name], self.layer_avg_losses[name]):
+        #             print(f"Early stopping for layer {name} at iteration {iteration}")
+        #             # Freeze the layer by setting requires_grad to False
+        #             layer.requires_grad_(False)
+        #         else:
+        #             # Layer is still being trained, so update parameters
+        #             for param in layer.parameters():
+        #                 if param.grad is not None:
+        #                     param.data -= self.optimizer_ssh.param_groups[0]['lr'] * param.grad.data
+                    
+        #             # Update the average loss for the layer
+        #             if self.layer_avg_losses[name] is None:
+        #                 self.layer_avg_losses[name] = layer_loss
+        #             else:
+        #                 self.layer_avg_losses[name] = 0.9 * self.layer_avg_losses[name] + 0.1 * layer_loss
+
+        # # Ensure gradients are cleared for the next iteration
+        # self.optimizer_ssh.zero_grad()
+
+        # # print(loss_hist)
+        # return self.loss_hist, self.layer_losses, self.layer_avg_losses
+        for name, layer in self.ssh.ext.named_modules():
+            if isinstance(layer, nn.BatchNorm2d):
+                layer_grad = torch.cat([param.grad.view(-1) for param in layer.parameters() if param.grad is not None])
+                layer_grad = layer_grad.cpu().numpy()  # Convert to numpy array for cosine similarity
+                # print(layer_grad)                                                                                                                 
+                if layer_grad.sum() == 0:
+                    print(f"Warning: Zero gradients for layer {name}")
+                if self.layer_avg_gradients[name] is None:
+                    self.layer_avg_gradients[name] = layer_grad
+                    append_to_dataframe(layer_grad, self.layer_avg_gradients[name],name, "Initialized", 1.0)
+                else:
+                    # Compute cosine similarity between current gradient and average gradient
+                    similarity = cosine_similarity(torch.tensor(layer_grad), torch.tensor(self.layer_avg_gradients[name]))
+
+                    if similarity < 0.0:  # Adjust threshold if needed
+                        append_to_dataframe(layer_grad, self.layer_avg_gradients[name],name, "Early Stopping", similarity)
+                        print(f"Early stopping for layer {name} at batch {batch}")
+                        layer.requires_grad_(False)
+                        # for param in layer.parameters():
+                        #     if param.grad is not None:
+                        #         param.grad.data.zero_() 
+                        self.layer_avg_gradients[name] = layer_grad
+                    else:
+                        # Update average gradient
+                        append_to_dataframe(layer_grad, self.layer_avg_gradients[name],name, "No Early Stopping", similarity)
+                        self.layer_avg_gradients[name] = 0.8 * self.layer_avg_gradients[name] + 0.2 * layer_grad
+
+        # Update parameters
+        for param in self.ssh.parameters():
+            if param.grad is not None:
+                param.data -= self.optimizer_ssh.param_groups[0]['lr'] * param.grad.data
+        add_empty_line()
+        
+        for param in self.ssh.parameters():
+            param.requires_grad = False
+
+        for layer in self.ssh.ext.modules():
+            if isinstance(layer, nn.BatchNorm2d):
+                layer.requires_grad_(True)
+
+        if config.fix_ssh:
+            self.ssh.eval()
+            self.ssh.ext.train()
+        else:
+            self.ssh.train()
+        
+        self.optimizer_ssh.zero_grad()
+
+
+
+        return  self.layer_gradients, self.layer_avg_gradients
+
+    # def should_stop_early_cosine(self, losses, avg_loss, threshold=0.95, window_size=5):
+    #     print(losses)
+    #     if len(losses) < window_size or avg_loss is None:
+    #         return False
+            
+    #     recent_losses = torch.tensor(losses[-window_size:])
+    #     avg_loss_tensor = torch.tensor([avg_loss] * window_size)
+        
+    #     similarity = cosine_similarity(recent_losses.unsqueeze(0), avg_loss_tensor.unsqueeze(0))
+        
+    #     if similarity > threshold:
+    #         return False  # Continue training
+    #     else:
+    #         return True  # Stop training for this layer
+
+
 
     def new_ttt(self, svPath, config):
+        
+        batch = 1
+
 
         if config.online:
             self.model.load_state_dict(torch.load('/home/mihir-rahul/Desktop/btp/TID2013_KADID10K_IQA_Meta_resnet18_38'))
@@ -403,7 +586,8 @@ class METAIQASolver(object):
         for data_dict, label in pbar:
 
             img = data_dict['image']
-
+            # print(img.shape)
+            # exit()
             if not config.online:
                 self.model.load_state_dict(torch.load('/home/mihir-rahul/Desktop/btp/TID2013_KADID10K_IQA_Meta_resnet18_38'))
 
@@ -414,13 +598,14 @@ class METAIQASolver(object):
 
 
             if config.group_contrastive:
+                print("gc section")
                 if len(img) > 3:
-                    loss_hist = self.adapt(data_dict, config, old_net)
+                    loss_hist = self.adapt(data_dict, config, old_net, batch)
                 elif config.rank or config.blur or config.comp or config.nos or config.contrastive or config.rotation:
                     config.group_contrastive=False
-                    loss_hist = self.adapt(data_dict, config, old_net)
+                    loss_hist = self.adapt(data_dict, config, old_net, batch)
             elif config.rank or config.blur or config.comp or config.nos or config.contrastive or config.rotation:
-                loss_hist = self.adapt(data_dict, config, old_net)
+                loss_hist = self.adapt(data_dict, config, old_net, batch)
 
             old_net.load_state_dict(torch.load('/home/mihir-rahul/Desktop/btp/TID2013_KADID10K_IQA_Meta_resnet18_38'))
 
@@ -456,6 +641,8 @@ class METAIQASolver(object):
                                                                                                    test_srcc,
                                                                                                    test_plcc_old,
                                                                                                    test_plcc))
+
+            batch+=1
 
         pred_scores = np.mean(np.reshape(np.array(pred_scores), (-1, self.test_patch_num)), axis=1)
         pred_scores_old = np.mean(np.reshape(np.array(pred_scores_old), (-1, self.test_patch_num)), axis=1)
@@ -506,7 +693,7 @@ if __name__ == '__main__':
     parser.add_argument('--online', action='store_true')
     parser.add_argument('--fix_ssh', action='store_true')
     parser.add_argument('--test', action='store_true')
-    parser.add_argument('--niter', default=3, type=int)
+    parser.add_argument('--niter', default=1, type=int)
     parser.add_argument('--run', dest='run', type=int, default=1, help='for running at multiple seeds')
 
     config = parser.parse_args()
@@ -583,4 +770,19 @@ if __name__ == '__main__':
         final_rho_p = np.mean(np.array(rho_p_list))
 
         print(' final_srcc new {} \n final_plcc new:{}'.format(final_rho_s, final_rho_p))
+    
+    if config.rank and not config.group_contrastive:
+        save_to_parquet('only_rank_loss.parquet')
+    
+    if config.group_contrastive and not config.rank:
+        save_to_parquet('only_group_contrastive.parquet')
+    
+    if config.rank and config.group_contrastive:
+        save_to_parquet('rank+gc_loss.parquet')
+
+    if config.rotation:
+        save_to_parquet('rotation.parquet')
+
+
+
 

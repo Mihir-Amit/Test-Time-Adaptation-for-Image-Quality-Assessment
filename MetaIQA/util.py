@@ -2,6 +2,7 @@ import torch
 from torch import nn
 import torch.nn.functional as F
 import numpy as np
+import pandas as pd
 from matplotlib import pyplot as plt
 from matplotlib.lines import  Line2D
 from PIL import Image
@@ -170,3 +171,41 @@ def Sort_Tuple(tup):
     # sublist lambda has been used
     tup.sort(key=lambda x: x[1],reverse=True)
     return tup
+
+df = pd.DataFrame()
+
+def append_to_dataframe(layer_grad, layer_avg_grad, layer_name, similarity_exceeds_threshold, cosine_similarity_value):
+    global df  # Use the global DataFrame to accumulate data
+
+    # Convert the gradients to lists (assuming layer_grad and layer_avg_grad are tensors or arrays)
+    layer_grad_np = layer_grad.detach().cpu().numpy() if hasattr(layer_grad, 'detach') else np.array(layer_grad)
+    layer_avg_grad_np = layer_avg_grad.detach().cpu().numpy() if hasattr(layer_avg_grad, 'detach') else np.array(layer_avg_grad)
+    
+    # Create a DataFrame for the current layer
+    df_iteration = pd.DataFrame({
+        'layer_name': [layer_name],  # Add layer name
+        'layer_grad': [layer_grad_np.tolist()],  # Store gradients as lists
+        'layer_avg_grad': [layer_avg_grad_np.tolist()],  # Store average gradients as lists
+        'cosine_similarity': [cosine_similarity_value],  # Store cosine similarity
+        'similarity_exceeds_threshold': [similarity_exceeds_threshold]  # True/False value
+    })
+
+    # Append a row of NaN values for spacing between iterations
+    df_iteration = df_iteration.append(pd.Series([None] * len(df_iteration.columns), index=df_iteration.columns), ignore_index=True)
+
+    # Append the current iteration's DataFrame to the global DataFrame
+    global df
+    df = pd.concat([df, df_iteration], ignore_index=True)
+    # print(df.iloc[-5])
+
+def add_empty_line():
+    global df  # Use the global DataFrame to append the empty line
+    # Create an empty row with None values
+    empty_row = pd.Series([None] * len(df.columns), index=df.columns)
+    # Append the empty row to the global DataFrame
+    df = df.append(empty_row, ignore_index=True)
+
+def save_to_parquet(filename='gradients_with_similarity.parquet'):
+    global df
+    # Save the DataFrame to a Parquet file
+    df.to_parquet(filename, engine='pyarrow')
