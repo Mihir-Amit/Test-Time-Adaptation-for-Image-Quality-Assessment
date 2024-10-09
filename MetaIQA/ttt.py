@@ -697,7 +697,7 @@ if __name__ == '__main__':
     parser.add_argument('--run', dest='run', type=int, default=1, help='for running at multiple seeds')
 
     config = parser.parse_args()
-    config.datapath = '/home/mihir-rahul/Desktop/btp/TTA-IQA/Datasets' + config.datapath
+    config.datapath = '/home/mihir-rahul/Desktop/btp/TTA-IQA/Datasets/Datasets' + config.datapath
 
     folder_path = {
         'live': config.datapath,
@@ -769,7 +769,10 @@ if __name__ == '__main__':
         final_rho_s = np.mean(np.array(rho_s_list))
         final_rho_p = np.mean(np.array(rho_p_list))
 
-        print(' final_srcc new {} \n final_plcc new:{}'.format(final_rho_s, final_rho_p))
+        # print(' final_srcc new {} \n final_plcc new:{}'.format(final_rho_s, final_rho_p))
+        with open('output.txt', 'a') as file:
+            file.write('final_srcc new: {} \nfinal_plcc new: {}'.format(final_rho_s, final_rho_p))
+
     
     if config.rank and not config.group_contrastive:
         save_to_parquet('only_rank_loss.parquet')

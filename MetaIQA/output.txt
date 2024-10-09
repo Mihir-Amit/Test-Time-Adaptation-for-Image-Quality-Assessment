@@ -1,0 +1,12 @@
+rank only: 
+final_srcc new: -0.7620111407375056 
+final_plcc new: -0.7088465794907999
+group contrastive only: 
+final_srcc new: -0.7509378880882763 
+final_plcc new: -0.6919910562284728
+rank + group contrastive: 
+final_srcc new: -0.7680229914049892 
+final_plcc new: -0.7176857160406829
+rotations: 
+final_srcc new: -0.7529426083090828 
+final_plcc new: -0.694182585768155
