@@ -181,7 +181,7 @@ class METAIQASolver(object):
         self.model.train(False)
 
         if pretrained:
-            self.model.load_state_dict(torch.load('/home/mihir-rahul/Desktop/btp/TID2013_KADID10K_IQA_Meta_resnet18_38'))
+            self.model.load_state_dict(torch.load('model_IQA/TID2013_KADID10K_IQA_Meta_resnet18_38'))
 
         pred_scores = []
         gt_scores = []
@@ -386,7 +386,7 @@ class METAIQASolver(object):
     def new_ttt(self, svPath, config):
 
         if config.online:
-            self.model.load_state_dict(torch.load('/home/mihir-rahul/Desktop/btp/TID2013_KADID10K_IQA_Meta_resnet18_38'))
+            self.model.load_state_dict(torch.load('model_IQA/TID2013_KADID10K_IQA_Meta_resnet18_38'))
 
         steps = 0
 
@@ -405,12 +405,12 @@ class METAIQASolver(object):
             img = data_dict['image']
 
             if not config.online:
-                self.model.load_state_dict(torch.load('/home/mihir-rahul/Desktop/btp/TID2013_KADID10K_IQA_Meta_resnet18_38'))
+                self.model.load_state_dict(torch.load('model_IQA/TID2013_KADID10K_IQA_Meta_resnet18_38'))
 
             label = torch.as_tensor(label.cuda()).requires_grad_(False)
 
             old_net = copy.deepcopy(self.model)
-            old_net.load_state_dict(torch.load('/home/mihir-rahul/Desktop/btp/TID2013_KADID10K_IQA_Meta_resnet18_38'))
+            old_net.load_state_dict(torch.load('model_IQA/TID2013_KADID10K_IQA_Meta_resnet18_38'))
 
 
             if config.group_contrastive:
@@ -422,7 +422,7 @@ class METAIQASolver(object):
             elif config.rank or config.blur or config.comp or config.nos or config.contrastive or config.rotation:
                 loss_hist = self.adapt(data_dict, config, old_net)
 
-            old_net.load_state_dict(torch.load('/home/mihir-rahul/Desktop/btp/TID2013_KADID10K_IQA_Meta_resnet18_38'))
+            old_net.load_state_dict(torch.load('model_IQA/TID2013_KADID10K_IQA_Meta_resnet18_38'))
 
             self.model.eval()
             old_net.eval()
@@ -510,7 +510,7 @@ if __name__ == '__main__':
     parser.add_argument('--run', dest='run', type=int, default=1, help='for running at multiple seeds')
 
     config = parser.parse_args()
-    config.datapath = '/home/mihir-rahul/Desktop/btp/TTA-IQA/Datasets' + config.datapath
+    config.datapath = '/home/mihir-rahul/Desktop/btp/TTA-IQA/Datasets/Datasets' + config.datapath
 
     folder_path = {
         'live': config.datapath,
@@ -582,5 +582,7 @@ if __name__ == '__main__':
         final_rho_s = np.mean(np.array(rho_s_list))
         final_rho_p = np.mean(np.array(rho_p_list))
 
-        print(' final_srcc new {} \n final_plcc new:{}'.format(final_rho_s, final_rho_p))
+        with open('output.txt', 'a') as file:
+            file.write('final_srcc new: {} \nfinal_plcc new: {}\n'.format(final_rho_s, final_rho_p))
+
 
