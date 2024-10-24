@@ -33,14 +33,14 @@ if __name__ == '__main__':
     # s2 = '--datapath DSLR --dataset dslr'
     # main(s1, s2)
 
-    s2 = '--datapath LIVE --dataset live'
-    main(s1,s2)
+    # s2 = '--datapath LIVE --dataset live'
+    # main(s1,s2)
 
     # s2 = '--datapath CID2013 --dataset cidiq'
     # main(s1,s2)
 
-    # s2 = '--datapath KONIQ --dataset koniq'
-    # main(s1,s2)
+    s2 = '--datapath KONIQ --dataset koniq'
+    main(s1,s2)
 
     # s2 = '--datapath PIPAL --dataset pipal'
     # main(s1,s2)

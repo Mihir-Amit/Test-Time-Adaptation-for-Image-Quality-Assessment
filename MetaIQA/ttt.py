@@ -18,6 +18,9 @@ from util import *
 from tqdm import tqdm
 from scipy.stats import spearmanr
 
+
+
+
 os.environ["CUDA_VISIBLE_DEVICES"]="0"
 
 import warnings
@@ -297,7 +300,8 @@ class METAIQASolver(object):
     def adapt(self, data_dict, config, old_net, batch):
         # self.early_stopping = LayerwiseEarlyStopping(self.model, patience=5, threshold=0.95)
         inputs = data_dict['image']
-        # print(inputs.shape)
+        high_quality_threshold = 0.60
+        print(inputs.shape)
         # exit()
 
         soft_start = 10
@@ -310,7 +314,8 @@ class METAIQASolver(object):
         with torch.no_grad():
 
             pred0 = old_net(data_dict['image'].cuda())
-
+            print(pred0) #checking for values of pred to allow for limiting rank use
+    
             if config.rank:
 
                 sigma1 = 40 + np.random.random()*20
@@ -404,8 +409,12 @@ class METAIQASolver(object):
         for iteration in range(config.niter):
 
             target = torch.ones(inputs.shape[0]).cuda()
+            loss = 0.0
 
             if config.rank or config.blur or config.comp or config.nos:
+                
+                #TO ONLY TAKE IMAGES WITH HIGH VALUES OF PRED0"
+                high_quality_mask = (pred0.squeeze() > high_quality_threshold).float()
 
                 f_low_feat = self.ssh(f_low)
                 f_high_feat = self.ssh(f_high)
@@ -415,6 +424,15 @@ class METAIQASolver(object):
                 dist_low = torch.nn.PairwiseDistance(p=2)(f_low_feat, f_actual)
 
                 loss = self.rank_loss(m(dist_high - dist_low), target)
+
+                bce_loss = self.rank_loss(m(dist_high - dist_low), target)
+
+                masked_loss = bce_loss * high_quality_mask
+                num_high_quality = high_quality_mask.sum()
+                if num_high_quality > 0:
+                    loss = masked_loss.sum() / num_high_quality
+                else:
+                    loss = torch.tensor(0.0, device=bce_loss.device, requires_grad=True)
 
             if config.contrastive:
                 f_neg_feat = self.ssh(f_low)
@@ -451,64 +469,68 @@ class METAIQASolver(object):
                 inputs_ssh, labels_ssh = rotate_batch(inputs.cuda(), 'rand')
                 outputs_ssh = self.ssh(inputs_ssh.float())
                 loss = nn.CrossEntropyLoss()(outputs_ssh, labels_ssh.cuda())
+            
+            print("noice")
+            print(loss)
+            if torch.eq(loss, torch.tensor(0.0, device=loss.device)).all() == False:
+                loss.backward()
 
-            loss.backward()
 
-            for name, layer in self.ssh.ext.named_modules():
-                if isinstance(layer, nn.BatchNorm2d):
-                    layer_grad = torch.cat([param.grad.view(-1) for param in layer.parameters() if param.grad is not None])
-                    layer_grad = layer_grad.cpu().numpy()  # Convert to numpy array for cosine similarity
-                    # print(layer_grad)                                                                                                                 
-                    if layer_grad.sum() == 0:
-                        print(f"Warning: Zero gradients for layer {name}")
-                    if self.layer_avg_gradients[name] is None:
-                        self.layer_avg_gradients[name] = layer_grad
-                        append_to_dataframe(layer_grad, self.layer_avg_gradients[name],name, "Initialized", 1.0)
-                        self.layer_gradient_count[name] = 1
-                        self.layer_patience_left[name] = 5
-                    else:
-                        # Compute cosine similarity between current gradient and average gradient
-                        similarity = cosine_similarity(torch.tensor(layer_grad), torch.tensor(self.layer_avg_gradients[name]))
-
-                        if similarity < 0.0 and batch > soft_start and self.layer_patience_left[name] <= 0:  # Adjust threshold if needed
-                            append_to_dataframe(layer_grad, self.layer_avg_gradients[name],name, "Early Stopping", similarity)
-                            print(f"Early stopping for layer {name} at batch {batch}")
-                            layer.requires_grad_(False)
-                            # for param in layer.parameters():
-                            #     if param.grad is not None:
-                            #         param.grad.data.zero_() 
+                for name, layer in self.ssh.ext.named_modules():
+                    if isinstance(layer, nn.BatchNorm2d):
+                        layer_grad = torch.cat([param.grad.view(-1) for param in layer.parameters() if param.grad is not None])
+                        layer_grad = layer_grad.cpu().numpy()  # Convert to numpy array for cosine similarity
+                        # print(layer_grad)                                                                                                                 
+                        if layer_grad.sum() == 0:
+                            print(f"Warning: Zero gradients for layer {name}")
+                        if self.layer_avg_gradients[name] is None:
                             self.layer_avg_gradients[name] = layer_grad
+                            append_to_dataframe(layer_grad, self.layer_avg_gradients[name],name, "Initialized", 1.0)
                             self.layer_gradient_count[name] = 1
                             self.layer_patience_left[name] = 5
                         else:
-                            # Update average gradient
-                            if similarity < 0.0 and batch>soft_start:
-                                print (self.layer_patience_left[name], name)
-                                self.layer_patience_left[name] -= 1
-                            self.layer_gradient_count[name] += 1
-                            append_to_dataframe(layer_grad, self.layer_avg_gradients[name],name, "No Early Stopping", similarity)
-                            self.layer_avg_gradients[name] = (self.layer_avg_gradients[name]*(self.layer_gradient_count[name]-1) + layer_grad)/self.layer_gradient_count[name]
+                            # Compute cosine similarity between current gradient and average gradient
+                            similarity = cosine_similarity(torch.tensor(layer_grad), torch.tensor(self.layer_avg_gradients[name]))
 
-            # Update parameters
-            for param in self.ssh.parameters():
-                if param.grad is not None:
-                    param.data -= self.optimizer_ssh.param_groups[0]['lr'] * param.grad.data
-            add_empty_line()
-            
-            for param in self.ssh.parameters():
-                param.requires_grad = False
+                            if similarity < 0.0 and batch > soft_start and self.layer_patience_left[name] <= 0:  # Adjust threshold if needed
+                                append_to_dataframe(layer_grad, self.layer_avg_gradients[name],name, "Early Stopping", similarity)
+                                print(f"Early stopping for layer {name} at batch {batch}")
+                                layer.requires_grad_(False)
+                                # for param in layer.parameters():
+                                #     if param.grad is not None:
+                                #         param.grad.data.zero_() 
+                                self.layer_avg_gradients[name] = layer_grad
+                                self.layer_gradient_count[name] = 1
+                                self.layer_patience_left[name] = 5
+                            else:
+                                # Update average gradient
+                                if similarity < 0.0 and batch>soft_start:
+                                    print (self.layer_patience_left[name], name)
+                                    self.layer_patience_left[name] -= 1
+                                self.layer_gradient_count[name] += 1
+                                append_to_dataframe(layer_grad, self.layer_avg_gradients[name],name, "No Early Stopping", similarity)
+                                self.layer_avg_gradients[name] = (self.layer_avg_gradients[name]*(self.layer_gradient_count[name]-1) + layer_grad)/self.layer_gradient_count[name]
 
-            for layer in self.ssh.ext.modules():
-                if isinstance(layer, nn.BatchNorm2d):
-                    layer.requires_grad_(True)
+                # Update parameters
+                for param in self.ssh.parameters():
+                    if param.grad is not None:
+                        param.data -= self.optimizer_ssh.param_groups[0]['lr'] * param.grad.data
+                add_empty_line()
+                
+                for param in self.ssh.parameters():
+                    param.requires_grad = False
 
-            if config.fix_ssh:
-                self.ssh.eval()
-                self.ssh.ext.train()
-            else:
-                self.ssh.train()
-            
-            self.optimizer_ssh.zero_grad()
+                for layer in self.ssh.ext.modules():
+                    if isinstance(layer, nn.BatchNorm2d):
+                        layer.requires_grad_(True)
+
+                if config.fix_ssh:
+                    self.ssh.eval()
+                    self.ssh.ext.train()
+                else:
+                    self.ssh.train()
+                
+                self.optimizer_ssh.zero_grad()
 
 
 

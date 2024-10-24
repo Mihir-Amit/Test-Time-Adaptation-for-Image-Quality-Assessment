@@ -11,6 +11,7 @@ from PIL import ImageCms
 from skvideo.utils.mscn import gen_gauss_window
 import scipy.ndimage
 
+import lpips
 
 class GroupContrastiveLoss(nn.Module):
 	def __init__(self, batch_size, temperature=0.5):
@@ -209,3 +210,25 @@ def save_to_parquet(filename='gradients_with_similarity.parquet'):
     global df
     # Save the DataFrame to a Parquet file
     df.to_parquet(filename, engine='pyarrow')
+
+def lpips_losses(image):
+    ref_image = Image.open('..Datasets/References/refimg')
+
+    loss_fn_alex = lpips.LPIPS(net='alex') # best forward scores
+    loss_fn_vgg = lpips.LPIPS(net='vgg')
+    # Define a transform to resize the image to (264, 264) and convert to a tensor
+    transform = transforms.Compose([
+        transforms.Resize((264, 264)),     # Resize to 264x264
+        transforms.ToTensor()              # Convert image to Tensor (automatically scales pixels to [0,1])
+    ])
+    image_tensor = transform(image)
+    ref_image_tensor = transform(ref_image)
+
+    image_tensor = image_tensor*2-1
+    ref_image_tensor = ref_image_tensor*2-1
+
+    if lpips(image_tensor, ref_image_tensor) < 0.5:
+        return True
+    else:
+        return False
+         
