@@ -9,19 +9,19 @@ def main(s1,s2):
     with open('output.txt', 'w') as file:
         file.write('rank only: \n')
     os.system(f'{s1} {s2} --rank')
-    t.append(time.time() - t[0])
-    with open('output.txt', 'a') as file:
-        file.write('group contrastive only: \n')
-    os.system(f'{s1} {s2} --group_contrastive')
-    t.append(time.time() - t[0])
+    # t.append(time.time() - t[0])
+    # with open('output.txt', 'a') as file:
+    #     file.write('group contrastive only: \n')
+    # os.system(f'{s1} {s2} --group_contrastive')
+    # t.append(time.time() - t[0])
     with open('output.txt', 'a') as file:
         file.write('rank + group contrastive: \n')
     os.system(f'{s1} {s2} --rank --group_contrastive')
     t.append(time.time() - t[0])
-    with open('output.txt', 'a') as file:
-        file.write('rotations: \n')
-    os.system(f'{s1} {s2} --rotation')
-    t.append(time.time() - t[0])
+    # with open('output.txt', 'a') as file:
+    #     file.write('rotations: \n')
+    # os.system(f'{s1} {s2} --rotation')
+    # t.append(time.time() - t[0])
 
     print(f' Time Taken for all experiment : {t[1:]}')
     pass

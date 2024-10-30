@@ -211,24 +211,30 @@ def save_to_parquet(filename='gradients_with_similarity.parquet'):
     # Save the DataFrame to a Parquet file
     df.to_parquet(filename, engine='pyarrow')
 
-def lpips_losses(image):
-    ref_image = Image.open('..Datasets/References/refimg')
+def lpips_losses(pred_batch, lpips_threshold = 0.75):
+    ref_image = Image.open('../Datasets/References/refimg.jpg')
 
     loss_fn_alex = lpips.LPIPS(net='alex') # best forward scores
-    loss_fn_vgg = lpips.LPIPS(net='vgg')
+    loss_fn_vgg = lpips.LPIPS(net='vgg').to(torch.device('cuda:0'))
     # Define a transform to resize the image to (264, 264) and convert to a tensor
     transform = transforms.Compose([
-        transforms.Resize((264, 264)),     # Resize to 264x264
+        transforms.Resize((224, 224)),     # Resize to 264x264
         transforms.ToTensor()              # Convert image to Tensor (automatically scales pixels to [0,1])
     ])
-    image_tensor = transform(image)
+
     ref_image_tensor = transform(ref_image)
+    pred_batch_normalized = (2 * pred_batch - 1).to(torch.device('cuda:0'))  
+    ref_img_normalized = (ref_image_tensor*2-1).to(torch.device('cuda:0'))
 
-    image_tensor = image_tensor*2-1
-    ref_image_tensor = ref_image_tensor*2-1
+    lpips_distances = torch.zeros(pred_batch.shape[0])
 
-    if lpips(image_tensor, ref_image_tensor) < 0.5:
-        return True
-    else:
-        return False
+    # print(pred_batch_normalized.shape)
+    # print(ref_img_normalized.shape)
+    for i in range(pred_batch.shape[0]):
+        lpips_distances[i] = loss_fn_vgg(pred_batch_normalized[i].unsqueeze(0), ref_img_normalized)
+    # print(lpips_distances)
+    # exit()
+    high_quality_mask = (lpips_distances < lpips_threshold).float()
+    # print(high_quality_mask)
+    return high_quality_mask
          

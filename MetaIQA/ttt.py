@@ -301,7 +301,7 @@ class METAIQASolver(object):
         # self.early_stopping = LayerwiseEarlyStopping(self.model, patience=5, threshold=0.95)
         inputs = data_dict['image']
         high_quality_threshold = 0.60
-        print(inputs.shape)
+        # print(inputs.shape)
         # exit()
 
         soft_start = 10
@@ -314,7 +314,8 @@ class METAIQASolver(object):
         with torch.no_grad():
 
             pred0 = old_net(data_dict['image'].cuda())
-            print(pred0) #checking for values of pred to allow for limiting rank use
+            # print("pref0: ")
+            # print(pred0) #checking for values of pred to allow for limiting rank use
     
             if config.rank:
 
@@ -409,13 +410,15 @@ class METAIQASolver(object):
         for iteration in range(config.niter):
 
             target = torch.ones(inputs.shape[0]).cuda()
+            # print(target)
             loss = 0.0
 
             if config.rank or config.blur or config.comp or config.nos:
                 
+                # high_quality_mask = (pred0.squeeze() > high_quality_threshold).float()
                 #TO ONLY TAKE IMAGES WITH HIGH VALUES OF PRED0"
-                high_quality_mask = (pred0.squeeze() > high_quality_threshold).float()
-
+                high_quality_mask = lpips_losses(data_dict['image'])
+                # print(high_quality_mask.shape)
                 f_low_feat = self.ssh(f_low)
                 f_high_feat = self.ssh(f_high)
                 f_actual = self.ssh(inputs.cuda())
@@ -423,16 +426,44 @@ class METAIQASolver(object):
                 dist_high = torch.nn.PairwiseDistance(p=2)(f_high_feat, f_actual)
                 dist_low = torch.nn.PairwiseDistance(p=2)(f_low_feat, f_actual)
 
-                loss = self.rank_loss(m(dist_high - dist_low), target)
+                # print("debugging:")
+                # print(high_quality_mask)
+                # print(dist_high)
+                # print(dist_low)
+                # # exit()
+                # print("changing:")
 
-                bce_loss = self.rank_loss(m(dist_high - dist_low), target)
+                # for i in range(8):
+                #     if high_quality_mask[i] == 0:
+                #         dist_high = torch.cat([dist_high[0:i], dist_high[i+1:-1]])
+                #         dist_low = torch.cat([dist_low[0:i], dist_low[i+1:-1]])
+                
+                dist_low = dist_low[high_quality_mask == 1.0]
+                dist_high = dist_high[high_quality_mask == 1.0]
+                target = target[high_quality_mask == 1.0]
 
-                masked_loss = bce_loss * high_quality_mask
-                num_high_quality = high_quality_mask.sum()
-                if num_high_quality > 0:
-                    loss = masked_loss.sum() / num_high_quality
+                # print(dist_high)
+                # print(dist_low)
+
+                # print("printing shapes:")
+                # print(dist_high.shape[0])
+                # print(target.shape[0])
+                if(dist_high.shape[0] > 0):
+                    loss = self.rank_loss(m(dist_high - dist_low), target)
                 else:
-                    loss = torch.tensor(0.0, device=bce_loss.device, requires_grad=True)
+                    loss = torch.tensor(0.0, requires_grad=True)
+                # exit()
+
+                # bce_loss = self.rank_loss(m(dist_high - dist_low), target)
+                # print(bce_loss)
+                # print(high_quality_mask.shape)
+                # # exit()
+                # masked_loss = bce_loss * high_quality_mask
+                # num_high_quality = high_quality_mask.sum()
+                # if num_high_quality > 0:
+                #     loss = masked_loss.sum() / num_high_quality
+                # else:
+                #     loss = torch.tensor(0.0, device=bce_loss.device, requires_grad=True)
 
             if config.contrastive:
                 f_neg_feat = self.ssh(f_low)
@@ -470,8 +501,8 @@ class METAIQASolver(object):
                 outputs_ssh = self.ssh(inputs_ssh.float())
                 loss = nn.CrossEntropyLoss()(outputs_ssh, labels_ssh.cuda())
             
-            print("noice")
-            print(loss)
+            # print("noice")
+            # print(loss)
             if torch.eq(loss, torch.tensor(0.0, device=loss.device)).all() == False:
                 loss.backward()
 
@@ -505,7 +536,7 @@ class METAIQASolver(object):
                             else:
                                 # Update average gradient
                                 if similarity < 0.0 and batch>soft_start:
-                                    print (self.layer_patience_left[name], name)
+                                    # print (self.layer_patience_left[name], name)
                                     self.layer_patience_left[name] -= 1
                                 self.layer_gradient_count[name] += 1
                                 append_to_dataframe(layer_grad, self.layer_avg_gradients[name],name, "No Early Stopping", similarity)
@@ -588,7 +619,7 @@ class METAIQASolver(object):
 
 
             if config.group_contrastive:
-                print("gc section")
+                # print("gc section")
                 if len(img) > 3:
                     loss_hist = self.adapt(data_dict, config, old_net, batch)
                 elif config.rank or config.blur or config.comp or config.nos or config.contrastive or config.rotation:
