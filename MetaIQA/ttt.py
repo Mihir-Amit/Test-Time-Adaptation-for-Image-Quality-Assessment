@@ -718,7 +718,7 @@ if __name__ == '__main__':
     parser.add_argument('--run', dest='run', type=int, default=1, help='for running at multiple seeds')
 
     config = parser.parse_args()
-    config.datapath = '/home/mihir-rahul/Desktop/btp/TTA-IQA/Datasets/Datasets' + config.datapath
+    config.datapath = '../Datasets/Datasets' + config.datapath
 
     folder_path = {
         'live': config.datapath,

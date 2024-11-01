@@ -524,7 +524,7 @@ class Koniq_10kFolder(data.Dataset):
         self.image_size = (224,224)
         imgname = []
         mos_all = []
-        csv_file = '/home/mihir-rahul/Desktop/btp/TTA-IQA/DatasetsKONIQ/koniq10k_scores_and_distributions.csv'
+        csv_file = '../Datasets/DatasetsKONIQ/koniq10k_scores_and_distributions.csv'
         with open(csv_file) as f:
             reader = csv.DictReader(f)
             for row in reader:
