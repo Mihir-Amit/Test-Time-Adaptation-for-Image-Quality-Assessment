@@ -26,53 +26,53 @@ def main(s1,s2):
 
 if __name__ == '__main__':
 
-    # s1 = 'python /home/mihir-rahul/Desktop/btp/TTA-IQA/TReS/ALL_EXPT.py --run 1 --batch_size 8 --lr 0.001 --niter 3 --num_encoder_layerst 2 --dim_feedforwardt 64 --nheadt 16 --network resnet50 --svpath ./weight --gpunum 0 --test_patch_num 1 --train_patch_num 1 --train_data live --fix_ssh'
+    # s1 = 'python test_adapt.py --run 1 --batch_size 8 --lr 0.001 --niter 3 --num_encoder_layerst 2 --dim_feedforwardt 64 --nheadt 16 --network resnet50 --svpath ./weight --gpunum 0 --test_patch_num 1 --train_patch_num 1 --train_data live --fix_ssh'
     # s2 = '--datapath DSLR --dataset dslr'
     # main(s1, s2)
 
     # Without transformer Test Time Adaptation
 
-    s1 = 'python /home/mihir-rahul/Desktop/btp/TTA-IQA/TReS/ALL_EXPT.py --run 3 --batch_size 8 --lr 0.001 --niter 3 --num_encoder_layerst 2 --dim_feedforwardt 64 --nheadt 16 --network resnet50 --svpath ./weight --gpunum 0 --test_patch_num 1 --train_patch_num 1 --train_data fblive --fix_ssh'
+    s1 = 'python test_adapt.py --run 3 --batch_size 8 --lr 0.001 --niter 3 --num_encoder_layerst 2 --dim_feedforwardt 64 --nheadt 16 --network resnet50 --svpath ./weight --gpunum 0 --test_patch_num 1 --train_patch_num 1 --train_data fblive --fix_ssh'
 
-    s2 = '--datapath DSLR --dataset dslr'
-    main(s1, s2)
+    # s2 = '--datapath DSLR --dataset dslr'
+    # main(s1, s2)
 
     s2 = '--datapath LIVE --dataset live'
     main(s1,s2)
 
-    s2 = '--datapath CID2013 --dataset cidiq'
-    main(s1,s2)
+    # s2 = '--datapath CID2013 --dataset cidiq'
+    # main(s1,s2)
 
-    s2 = '--datapath KONIQ --dataset koniq'
-    main(s1,s2)
+    # s2 = '--datapath KONIQ --dataset koniq'
+    # main(s1,s2)
 
-    s2 = '--datapath PIPAL --dataset pipal'
-    main(s1,s2)
+    # s2 = '--datapath PIPAL --dataset pipal'
+    # main(s1,s2)
 
-    s2 = '--datapath CLIVE --dataset clive'
-    main(s1,s2)
+    # s2 = '--datapath CLIVE --dataset clive'
+    # main(s1,s2)
 
     # s2 = '--datapath SPAQ --dataset spaq'
     # main(s1,s2)
 
     # With transformer Test Time Adaptation
 
-    s1 = 'python /home/mihir-rahul/Desktop/btp/TTA-IQA/TReS/ALL_EXPT.py --tta_tf --ln --bn --batch_size 8 --lr 0.001 --niter 3 --num_encoder_layerst 2 --dim_feedforwardt 64 --nheadt 16 --network resnet50 --svpath ./weight --gpunum 0 --test_patch_num 1 --train_patch_num 1 --train_data fblive --fix_ssh'
+    # s1 = 'python test_adapt.py --tta_tf --ln --bn --batch_size 8 --lr 0.001 --niter 3 --num_encoder_layerst 2 --dim_feedforwardt 64 --nheadt 16 --network resnet50 --svpath ./weight --gpunum 0 --test_patch_num 1 --train_patch_num 1 --train_data fblive --fix_ssh'
 
-    s2 = '--datapath LIVE --dataset live'
-    main(s1,s2)
+    # s2 = '--datapath LIVE --dataset live'
+    # main(s1,s2)
 
-    s2 = '--datapath CID2013 --dataset cidiq'
-    main(s1,s2)
+    # s2 = '--datapath CID2013 --dataset cidiq'
+    # main(s1,s2)
 
-    s2 = '--datapath /home/mihir-rahul/Desktop/btp/TTA-IQA/koniq10k_512x384/1024x768 --dataset koniq'
-    main(s1,s2)
+    # s2 = '--datapath KONIQ --dataset koniq'
+    # main(s1,s2)
 
-    s2 = '--datapath PIPAL --dataset pipal'
-    main(s1,s2)
+    # s2 = '--datapath PIPAL --dataset pipal'
+    # main(s1,s2)
 
-    s2 = '--datapath CLIVE --dataset clive'
-    main(s1,s2)
+    # s2 = '--datapath CLIVE --dataset clive'
+    # main(s1,s2)
 
     # s2 = '--datapath SPAQ --dataset spaq'
     # main(s1,s2)

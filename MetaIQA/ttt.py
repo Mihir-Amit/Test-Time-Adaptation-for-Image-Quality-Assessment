@@ -415,9 +415,9 @@ class METAIQASolver(object):
 
             if config.rank or config.blur or config.comp or config.nos:
                 
-                # high_quality_mask = (pred0.squeeze() > high_quality_threshold).float()
+                high_quality_mask = (pred0.squeeze() > high_quality_threshold).float()
                 #TO ONLY TAKE IMAGES WITH HIGH VALUES OF PRED0"
-                high_quality_mask = lpips_losses(data_dict['image'])
+                # high_quality_mask = lpips_losses(data_dict['image'])
                 # print(high_quality_mask.shape)
                 f_low_feat = self.ssh(f_low)
                 f_high_feat = self.ssh(f_high)

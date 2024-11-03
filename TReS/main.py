@@ -153,4 +153,4 @@ with open(imgsTestPath, 'w') as json_file2:
 
 solver = TReS(args, device, svPath, folder_path[args.dataset], train_index, test_index, Net)
 # solver.train_ssh(args.seed, svPath,args)
-srcc_computed, plcc_computed = solver.train(args.seed, svPath,args)
+srcc_computed, plcc_computed = solver.train(args.seed, svPath,args)   
