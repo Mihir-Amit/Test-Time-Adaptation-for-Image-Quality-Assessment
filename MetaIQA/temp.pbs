@@ -1,0 +1,20 @@
+
+#!/bin/bash
+#PBS -N myjob
+#PBS -l nodes=1:ppn=8:gpus=1
+#PBS -q gpu-ext
+#PBS -l mem=16gb
+#PBS -l walltime=02:00:00
+#PBS o output.log
+#PBS e error.log
+
+cd $PBS_O_WORKDIR
+
+module load anaconda
+module load cuda/11.3
+
+conda activate treetta
+python3 BTP/Test-Time-Adaptation-for-Image-Quality-Assessment/MetaIQA/ALL_EXPT.py
+
+conda init bash
+source ~/.bashrc
