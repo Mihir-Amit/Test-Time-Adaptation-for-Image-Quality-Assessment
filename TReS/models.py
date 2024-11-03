@@ -4,6 +4,64 @@ from scipy import stats
 from tqdm import tqdm
 import copy
 from utils import *
+from torch.nn.functional import cosine_similarity
+
+def cosine_similarity(x1, x2):
+    """
+    Compute the cosine similarity between two tensors.
+    
+    Args:
+        x1 (torch.Tensor): First tensor.
+        x2 (torch.Tensor): Second tensor.
+        
+    Returns:
+        float: Cosine similarity between x1 and x2.
+    """
+    # print(x1)
+    # print(x2)
+    # exit()
+    x1 = x1.flatten()
+    x2 = x2.flatten()
+    # Compute cosine similarity
+    cos_sim = F.cosine_similarity(x1.unsqueeze(0), x2.unsqueeze(0))
+    # print(cos_sim)
+    return cos_sim.item()
+
+
+class LayerwiseEarlyStopping:
+    def __init__(self, model, patience=5, threshold=0.5):
+        self.patience = patience
+        self.threshold = threshold
+        self.layer_counters = {name: 0 for name, _ in model.named_modules() if isinstance(_, nn.BatchNorm2d)}
+        self.previous_outputs = {}
+        self.previous_gradients = {}
+
+    def __call__(self, model):
+        
+        stop_layers = []
+        for name, layer in model.named_modules():
+            if isinstance(layer, nn.BatchNorm2d):
+                if name not in self.previous_outputs:
+                    self.previous_outputs[name] = None
+                    self.previous_gradients[name] = None
+                    continue
+                current_output = layer.output.detach()
+                current_gradient = layer.weight.grad.detach() if layer.weight.grad is not None else None
+                if self.previous_outputs[name] is not None and self.previous_gradients[name] is not None:
+                    output_similarity = cosine_similarity(current_output.view(-1), self.previous_outputs[name].view(-1), dim=0)
+                    gradient_similarity = cosine_similarity(current_gradient.view(-1), self.previous_gradients[name].view(-1), dim=0)
+                    if output_similarity > self.threshold and gradient_similarity > self.threshold:
+                        self.layer_counters[name] += 1
+                        if self.layer_counters[name] >= self.patience:
+                            stop_layers.append(name)
+                    else:
+                        self.layer_counters[name] = 0
+                self.previous_outputs[name] = current_output
+                self.previous_gradients[name] = current_gradient
+        # print(stop_layers)
+        return stop_layers
+    
+
 
 class TReS(object):
 
@@ -32,6 +90,15 @@ class TReS(object):
         self.optimizer_ssh = torch.optim.Adam(self.ext.parameters(), lr=self.lr)
         if not config.fix_ssh:
             self.optimizer_ssh = torch.optim.Adam(self.ssh.parameters(), lr=self.lr)
+
+        # self.layer_losses = {name: [] for name, layer in self.ssh.ext.named_modules() if isinstance(layer, nn.BatchNorm2d)}
+        # self.layer_avg_losses = {name: None for name in self.layer_losses.keys()}  # Use self.layer_losses here
+        # self.loss_hist = []  # Track overall loss history
+        # self.stop_layer_training = {name: False for name in self.layer_losses.keys()}
+        self.layer_gradients = {name: [] for name, layer in self.ssh.ext.named_modules() if isinstance(layer, nn.BatchNorm2d)}
+        self.layer_avg_gradients = {name: None for name in self.layer_gradients.keys()}
+        self.layer_gradient_count = {name:0 for name in self.layer_gradients.keys()}
+        self.layer_patience_left = {name:5 for name in self.layer_gradients.keys()}
 
 
     def test(self, data, pretrained=0):
@@ -92,12 +159,18 @@ class TReS(object):
 
         return test_srcc, test_plcc,srcc,plcc
 
-    def adapt(self, data_dict, config, old_net):
+    def adapt(self, data_dict, config, old_net, batch):
 
+        # self.early_stopping = LayerwiseEarlyStopping(self.model, patience=5, threshold=0.95)
         inputs = data_dict['image']
-
+        # print(inputs.shape)
+        # exit()
         f_low = []
         f_high = []
+
+
+        soft_start = 10
+
 
         with torch.no_grad():
             pred0, _ = old_net(data_dict['image'].cuda())
@@ -198,7 +271,7 @@ class TReS(object):
         else:
             self.ssh.train()
 
-        loss_hist = []
+        # loss_hist = []
 
         for iteration in range(config.niter):
 
@@ -254,8 +327,73 @@ class TReS(object):
                 loss = nn.CrossEntropyLoss()(outputs_ssh, labels1_ssh.cuda())
 
             loss.backward()
-            self.optimizer_ssh.step()
-            loss_hist.append(loss.detach().cpu())
+            for name, layer in self.ssh.ext.named_modules():
+                if isinstance(layer, nn.BatchNorm2d):
+                    layer_grad = torch.cat([param.grad.view(-1) for param in layer.parameters() if param.grad is not None])
+                    layer_grad = layer_grad.cpu().numpy()  # Convert to numpy array for cosine similarity
+                    # print(layer_grad)                                                                                                                 
+                    if layer_grad.sum() == 0:
+                        print(f"Warning: Zero gradients for layer {name}")
+                    if self.layer_avg_gradients[name] is None:
+                        self.layer_avg_gradients[name] = layer_grad
+                        append_to_dataframe(layer_grad, self.layer_avg_gradients[name],name, "Initialized", 1.0)
+                        self.layer_gradient_count[name] = 1
+                        self.layer_patience_left[name] = 5
+                    else:
+                        # Update average gradient
+                        # Compute cosine similarity between current gradient and average gradient
+                        similarity = cosine_similarity(torch.tensor(layer_grad), torch.tensor(self.layer_avg_gradients[name]))
+                        if similarity < 0.0 and batch > soft_start and self.layer_patience_left[name] <= 0:  # Adjust threshold if needed
+                            append_to_dataframe(layer_grad, self.layer_avg_gradients[name],name, "Early Stopping", similarity)
+                            print(f"Early stopping for layer {name} at batch {batch}")
+                            layer.requires_grad_(False)
+                            # for param in layer.parameters():
+                            #     if param.grad is not None:
+                            #         param.grad.data.zero_() 
+                            self.layer_avg_gradients[name] = layer_grad
+                            self.layer_gradient_count[name] = 1
+                            self.layer_patience_left[name] = 5
+                        else:
+                            # Update average gradient
+                            if similarity < 0.0 and batch>soft_start:
+                                print (self.layer_patience_left[name], name)
+                                self.layer_patience_left[name] -= 1
+                            self.layer_gradient_count[name] += 1
+                            append_to_dataframe(layer_grad, self.layer_avg_gradients[name],name, "No Early Stopping", similarity)
+                            self.layer_avg_gradients[name] = (self.layer_avg_gradients[name]*(self.layer_gradient_count[name]-1) + layer_grad)/self.layer_gradient_count[name]
+            # Update parameters
+            for param in self.ssh.parameters():
+                if param.grad is not None:
+                    param.data -= self.optimizer_ssh.param_groups[0]['lr'] * param.grad.data
+            add_empty_line()
+            
+            for param in self.ssh.parameters():
+                param.requires_grad = False
+            for layer in self.ssh.ext.modules():
+                if isinstance(layer, nn.BatchNorm2d):
+                    layer.requires_grad_(True)
+            if config.fix_ssh:
+                self.ssh.eval()
+                self.ssh.ext.train()
+            else:
+                self.ssh.train()
+        
+        self.optimizer_ssh.zero_grad()
+        return  self.layer_gradients, self.layer_avg_gradients
+    # def should_stop_early_cosine(self, losses, avg_loss, threshold=0.95, window_size=5):
+    #     print(losses)
+    #     if len(losses) < window_size or avg_loss is None:
+    #         return False
+            
+    #     recent_losses = torch.tensor(losses[-window_size:])
+    #     avg_loss_tensor = torch.tensor([avg_loss] * window_size)
+        
+    #     similarity = cosine_similarity(recent_losses.unsqueeze(0), avg_loss_tensor.unsqueeze(0))
+        
+    #     if similarity > threshold:
+    #         return False  # Continue training
+    #     else:
+    #         return True  # Stop training for this layer
 
         # print(loss_hist)
 
@@ -263,6 +401,7 @@ class TReS(object):
 
     def new_ttt(self, data, config):
 
+        batch = 1
         if config.online:
             self.net.load_state_dict(torch.load(self.config.svpath + '/{}_TReS'.format(str(self.config.train_data))))
 
@@ -292,13 +431,13 @@ class TReS(object):
 
             if config.group_contrastive:
                 if len(img) > 3:
-                    loss_hist = self.adapt(data_dict, config, old_net)
+                    loss_hist = self.adapt(data_dict, config, old_net, batch)
                 else:
                     if config.rank or config.blur or config.comp or config.nos or config.contrastive or config.rotation or config.contrique:
                         config.group_contrastive = False
-                        loss_hist = self.adapt(data_dict, config, old_net)
+                        loss_hist = self.adapt(data_dict, config, old_net, batch)
             elif config.rank or config.blur or config.comp or config.nos or config.contrastive or config.rotation or config.contrique:
-                loss_hist = self.adapt(data_dict, config, old_net)
+                loss_hist = self.adapt(data_dict, config, old_net, batch)
 
             # if config.rank:
             #     print('done')
@@ -333,6 +472,7 @@ class TReS(object):
                                                                                                    test_srcc,
                                                                                                    test_plcc_old,
                                                                                                    test_plcc))
+            batch+=1
 
         pred_scores = np.mean(np.reshape(np.array(pred_scores), (-1, self.test_patch_num)), axis=1)
         pred_scores_old = np.mean(np.reshape(np.array(pred_scores_old), (-1, self.test_patch_num)), axis=1)
