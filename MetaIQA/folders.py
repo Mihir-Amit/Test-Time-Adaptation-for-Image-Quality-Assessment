@@ -110,7 +110,9 @@ class LIVEFolder(data.Dataset):
         refnames_all = scipy.io.loadmat(os.path.join(root, 'refnames_all.mat'))
         refnames_all = refnames_all['refnames_all']
 
-
+        # print(orgs.keys())
+        # print(refnames_all.keys())
+        # exit()
         refname.sort()
         sample = []
         for i in range(0, len(index)):
@@ -141,7 +143,7 @@ class LIVEFolder(data.Dataset):
 
         if self.transform is not None:
             data_dict['image'] = self.transform(sample)
-
+        data_dict['dmos_score'] = target
         if self.config.rank or self.config.blur or self.config.comp or self.config.nos or self.config.contrastive or self.config.rotation or self.config.contrique:
             data_dict=processing(data_dict,sample,self.transform,self.root,path,self.config)
 

@@ -297,8 +297,10 @@ class METAIQASolver(object):
 
         return test_srcc, test_plcc
 
-    def adapt(self, data_dict, config, old_net, batch):
+    def adapt(self, data_dict, config, old_net, batch, label):
         # self.early_stopping = LayerwiseEarlyStopping(self.model, patience=5, threshold=0.95)
+        # print(data_dict.keys())
+        # exit()
         inputs = data_dict['image']
         high_quality_threshold = 0.60
         # print(inputs.shape)
@@ -475,8 +477,8 @@ class METAIQASolver(object):
 
             if config.group_contrastive:
 
-                idx = np.argsort(pred0.cpu(), axis=0)
-
+                # idx = np.argsort(pred0.cpu(), axis=0)
+                idx = np.argsort(label.cpu(), axis=0)
                 f_feat = self.ssh(inputs.cuda())
 
                 f_pos_feat = []
@@ -605,7 +607,9 @@ class METAIQASolver(object):
         pbar = tqdm(self.test_data, leave=False)
 
         for data_dict, label in pbar:
-
+            # print("noice")
+            # print(data_dict.keys())
+            # print(label)
             img = data_dict['image']
             # print(img.shape)
             # exit()
@@ -621,12 +625,12 @@ class METAIQASolver(object):
             if config.group_contrastive:
                 # print("gc section")
                 if len(img) > 3:
-                    loss_hist = self.adapt(data_dict, config, old_net, batch)
+                    loss_hist = self.adapt(data_dict, config, old_net, batch, label)
                 elif config.rank or config.blur or config.comp or config.nos or config.contrastive or config.rotation:
                     config.group_contrastive=False
-                    loss_hist = self.adapt(data_dict, config, old_net, batch)
+                    loss_hist = self.adapt(data_dict, config, old_net, batch, label)
             elif config.rank or config.blur or config.comp or config.nos or config.contrastive or config.rotation:
-                loss_hist = self.adapt(data_dict, config, old_net, batch)
+                loss_hist = self.adapt(data_dict, config, old_net, batch, label)
 
             old_net.load_state_dict(torch.load('model_IQA/TID2013_KADID10K_IQA_Meta_resnet18_38'))
 
