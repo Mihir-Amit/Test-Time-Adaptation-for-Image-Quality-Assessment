@@ -159,9 +159,11 @@ class TReS(object):
 
         return test_srcc, test_plcc,srcc,plcc
 
-    def adapt(self, data_dict, config, old_net, batch):
+    def adapt(self, data_dict, config, old_net, batch, label):
 
         # self.early_stopping = LayerwiseEarlyStopping(self.model, patience=5, threshold=0.95)
+        print(data_dict.keys())
+        # exit()
         inputs = data_dict['image']
         # print(inputs.shape)
         # exit()
@@ -297,7 +299,7 @@ class TReS(object):
 
             if config.group_contrastive:
 
-                idx = np.argsort(pred0.cpu(), axis=0)
+                idx = np.argsort(label.cpu(), axis=0)
 
                 f_feat = self.ssh(inputs.cuda())
 
@@ -355,7 +357,7 @@ class TReS(object):
                             self.layer_patience_left[name] = 5
                         else:
                             # Update average gradient
-                            if similarity < 0.0 and batch>soft_start:
+                            if similarity < -1.0 and batch>soft_start:
                                 print (self.layer_patience_left[name], name)
                                 self.layer_patience_left[name] -= 1
                             self.layer_gradient_count[name] += 1
@@ -421,7 +423,8 @@ class TReS(object):
         for data_dict, label in tqdm(data, leave=False):
 
             img = data_dict['image']
-
+            print(label)
+            # exit()
             if not config.online:
                 self.net.load_state_dict(torch.load(self.config.svpath + '/{}_TReS'.format(str(self.config.train_data))))
 
@@ -431,13 +434,13 @@ class TReS(object):
 
             if config.group_contrastive:
                 if len(img) > 3:
-                    loss_hist = self.adapt(data_dict, config, old_net, batch)
+                    loss_hist = self.adapt(data_dict, config, old_net, batch, label)
                 else:
                     if config.rank or config.blur or config.comp or config.nos or config.contrastive or config.rotation or config.contrique:
                         config.group_contrastive = False
-                        loss_hist = self.adapt(data_dict, config, old_net, batch)
+                        loss_hist = self.adapt(data_dict, config, old_net, batch, label)
             elif config.rank or config.blur or config.comp or config.nos or config.contrastive or config.rotation or config.contrique:
-                loss_hist = self.adapt(data_dict, config, old_net, batch)
+                loss_hist = self.adapt(data_dict, config, old_net, batch, label)
 
             # if config.rank:
             #     print('done')
