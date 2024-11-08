@@ -525,7 +525,7 @@ class METAIQASolver(object):
                             # Compute cosine similarity between current gradient and average gradient
                             similarity = cosine_similarity(torch.tensor(layer_grad), torch.tensor(self.layer_avg_gradients[name]))
 
-                            if similarity < 0.0 and batch > soft_start and self.layer_patience_left[name] <= 0:  # Adjust threshold if needed
+                            if similarity < -1.0 and batch > soft_start and self.layer_patience_left[name] <= 0:  # Threshold adjusted so no early stopping occurs
                                 append_to_dataframe(layer_grad, self.layer_avg_gradients[name],name, "Early Stopping", similarity)
                                 print(f"Early stopping for layer {name} at batch {batch}")
                                 layer.requires_grad_(False)
