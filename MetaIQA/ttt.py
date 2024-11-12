@@ -306,7 +306,7 @@ class METAIQASolver(object):
         # print(inputs.shape)
         # exit()
 
-        soft_start = 10
+        soft_start = 1000000
 
         f_low = []
         f_high = []
@@ -525,7 +525,7 @@ class METAIQASolver(object):
                             # Compute cosine similarity between current gradient and average gradient
                             similarity = cosine_similarity(torch.tensor(layer_grad), torch.tensor(self.layer_avg_gradients[name]))
 
-                            if similarity < -1.0 and batch > soft_start and self.layer_patience_left[name] <= 0:  # Threshold adjusted so no early stopping occurs
+                            if similarity < 0.0 and batch > soft_start and self.layer_patience_left[name] <= 0:  # Threshold adjusted so no early stopping occurs
                                 append_to_dataframe(layer_grad, self.layer_avg_gradients[name],name, "Early Stopping", similarity)
                                 print(f"Early stopping for layer {name} at batch {batch}")
                                 layer.requires_grad_(False)
@@ -795,7 +795,7 @@ if __name__ == '__main__':
         final_rho_p = np.mean(np.array(rho_p_list))
 
         # print(' final_srcc new {} \n final_plcc new:{}'.format(final_rho_s, final_rho_p))
-        with open('output.txt', 'a') as file:
+        with open('output', 'a') as file:
             file.write('final_srcc new: {} \nfinal_plcc new: {}'.format(final_rho_s, final_rho_p))
 
     

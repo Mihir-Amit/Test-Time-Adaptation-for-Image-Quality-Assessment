@@ -171,7 +171,7 @@ class TReS(object):
         f_high = []
 
 
-        soft_start = 10
+        soft_start = 1000000 # too high to prevent ES
 
 
         with torch.no_grad():
@@ -357,7 +357,7 @@ class TReS(object):
                             self.layer_patience_left[name] = 5
                         else:
                             # Update average gradient
-                            if similarity < -1.0 and batch>soft_start:
+                            if similarity < 0.0 and batch>soft_start:
                                 print (self.layer_patience_left[name], name)
                                 self.layer_patience_left[name] -= 1
                             self.layer_gradient_count[name] += 1

@@ -161,7 +161,7 @@ final_rho_p=np.mean(np.array(rho_p_list))
 if not args.test_only:
     print('final_srcc old {}, final_plcc old {}'.format(test_srcc_old, test_plcc_old))
 print(' final_srcc new {}, final_plcc new:{}'.format(final_rho_s,final_rho_p))
-with open('output.txt', 'a') as file:
+with open('output', 'a') as file:
     file.write('final_srcc new: {} \nfinal_plcc new: {}'.format(final_rho_s, final_rho_p))
 # if config.rank and not config.group_contrastive:
 #     save_to_parquet('only_rank_loss.parquet')

@@ -12,23 +12,25 @@ def main(s1,s2):
     # t.append(time.time() - t[0])
     # os.system(f'{s1} {s2} --nos')
     # t.append(time.time() - t[0])
+    output = 'live+tres.txt'
     print("Testing for Rank only: ")
-    with open('output.txt', 'w') as file:
+    with open('output', 'w') as file:
         file.write('rank only: \n')
     os.system(f'{s1} {s2} --rank')
     t.append(time.time() - t[0])
     print("Testing for GC only: ")
-    with open('output.txt', 'a') as file:
+    with open('output', 'a') as file:
+        file.write('Checking for LIVE + TReS')
         file.write('group contrastive only: \n')
     os.system(f'{s1} {s2} --group_contrastive')
     t.append(time.time() - t[0])
     print("Testing for both: ")
-    with open('output.txt', 'a') as file:
+    with open('output', 'a') as file:
         file.write('rank + group contrastive: \n')
     os.system(f'{s1} {s2} --rank --group_contrastive')
     t.append(time.time() - t[0])
     print("Rotation: ")
-    with open('output.txt', 'a') as file:
+    with open('output', 'a') as file:
         file.write('rotations: \n')
     os.system(f'{s1} {s2} --rotation')
     t.append(time.time() - t[0])
@@ -44,7 +46,7 @@ if __name__ == '__main__':
 
     # Without transformer Test Time Adaptation
 
-    s1 = 'python test_adapt.py --run 3 --batch_size 8 --lr 0.001 --niter 3 --num_encoder_layerst 2 --dim_feedforwardt 64 --nheadt 16 --network resnet50 --svpath ./weight --gpunum 0 --test_patch_num 1 --train_patch_num 1 --train_data fblive --fix_ssh'
+    s1 = 'python test_adapt.py --run 1 --batch_size 8 --lr 0.001 --niter 3 --num_encoder_layerst 2 --dim_feedforwardt 64 --nheadt 16 --network resnet50 --svpath ./weight --gpunum 0 --test_patch_num 1 --train_patch_num 1 --train_data fblive --fix_ssh'
 
     # s2 = '--datapath DSLR --dataset dslr'
     # main(s1, s2)
