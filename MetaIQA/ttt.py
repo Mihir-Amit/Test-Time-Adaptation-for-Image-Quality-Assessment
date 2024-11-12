@@ -795,7 +795,7 @@ if __name__ == '__main__':
         final_rho_p = np.mean(np.array(rho_p_list))
 
         # print(' final_srcc new {} \n final_plcc new:{}'.format(final_rho_s, final_rho_p))
-        with open('output', 'a') as file:
+        with open(output, 'a') as file:
             file.write('final_srcc new: {} \nfinal_plcc new: {}'.format(final_rho_s, final_rho_p))
 
     
