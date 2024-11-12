@@ -299,8 +299,8 @@ class TReS(object):
 
             if config.group_contrastive:
 
-                idx = np.argsort(label.cpu(), axis=0)
-
+                # idx = np.argsort(label.cpu(), axis=0)
+                idx = np.argsort(pred0.cpu(), axis=0)
                 f_feat = self.ssh(inputs.cuda())
 
                 f_pos_feat = []
