@@ -298,9 +298,9 @@ class TReS(object):
                 loss = loss_fn(f_neg_feat, f_pos_feat)
 
             if config.group_contrastive:
-
-                # idx = np.argsort(label.cpu(), axis=0)
-                idx = np.argsort(pred0.cpu(), axis=0)
+                labels = label.unsqueeze(1)
+                idx = np.argsort(labels.cpu(), axis=0) #uncomment to use DMOS scores
+                # idx = np.argsort(pred0.cpu(), axis=0)   #uncomment to not use DMOS scores
                 f_feat = self.ssh(inputs.cuda())
 
                 f_pos_feat = []
@@ -423,7 +423,7 @@ class TReS(object):
         for data_dict, label in tqdm(data, leave=False):
 
             img = data_dict['image']
-            print(label)
+            # print(label)
             # exit()
             if not config.online:
                 self.net.load_state_dict(torch.load(self.config.svpath + '/{}_TReS'.format(str(self.config.train_data))))

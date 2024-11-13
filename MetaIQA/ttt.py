@@ -478,7 +478,8 @@ class METAIQASolver(object):
             if config.group_contrastive:
 
                 # idx = np.argsort(pred0.cpu(), axis=0)
-                idx = np.argsort(label.cpu(), axis=0)
+                labels = label.unsqueeze(1)
+                idx = np.argsort(labels.cpu(), axis=0)
                 f_feat = self.ssh(inputs.cuda())
 
                 f_pos_feat = []
