@@ -7,18 +7,18 @@ def main(s1,s2):
     t.append(time.time())
     print("test starting: ")
     t.append(time.time() - t[0])
-    # with open(output, 'w') as file:
-    #     file.write('rank only: \n')
-    # os.system(f'{s1} {s2} --rank')
-    # t.append(time.time() - t[0])
     with open(output, 'w') as file:
-        file.write('group contrastive only: \n')
-    os.system(f'{s1} {s2} --group_contrastive')
+        file.write('rank only: \n')
+    os.system(f'{s1} {s2} --rank')
     t.append(time.time() - t[0])
-    with open(output, 'a') as file:
-        file.write('rank + group contrastive: \n')
-    os.system(f'{s1} {s2} --rank --group_contrastive')
-    t.append(time.time() - t[0])
+    # with open(output, 'w') as file:
+    #     file.write('group contrastive only: \n')
+    # os.system(f'{s1} {s2} --group_contrastive')
+    # t.append(time.time() - t[0])
+    # with open(output, 'a') as file:
+    #     file.write('rank + group contrastive: \n')
+    # os.system(f'{s1} {s2} --rank --group_contrastive')
+    # t.append(time.time() - t[0])
     # with open(output, 'a') as file:
     #     file.write('rotations: \n')
     # os.system(f'{s1} {s2} --rotation')
@@ -34,14 +34,14 @@ if __name__ == '__main__':
     # s2 = '--datapath DSLR --dataset dslr'
     # main(s1, s2)
 
-    # s2 = '--datapath LIVE --dataset live'
-    # main(s1,s2)
+    s2 = '--datapath LIVE --dataset live'
+    main(s1,s2)
 
     # s2 = '--datapath CID2013 --dataset cidiq'
     # main(s1,s2)
 
-    s2 = '--datapath KONIQ --dataset koniq'
-    main(s1,s2)
+    # s2 = '--datapath KONIQ --dataset koniq'
+    # main(s1,s2)
 
     # s2 = '--datapath PIPAL --dataset pipal'
     # main(s1,s2)

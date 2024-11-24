@@ -18,7 +18,7 @@ from util import *
 from tqdm import tqdm
 from scipy.stats import spearmanr
 
-
+from denoiser import denoise
 
 
 os.environ["CUDA_VISIBLE_DEVICES"]="0"
@@ -207,7 +207,7 @@ class LayerwiseEarlyStopping:
 class METAIQASolver(object):
     """Solver for training and testing hyperIQA"""
     def __init__(self, config, path, train_idx, test_idx):
-
+        self.root_path = path
         self.test_patch_num = config.test_patch_num
 
         net1 = models.resnet18(pretrained=True)
@@ -299,9 +299,17 @@ class METAIQASolver(object):
 
     def adapt(self, data_dict, config, old_net, batch, label):
         # self.early_stopping = LayerwiseEarlyStopping(self.model, patience=5, threshold=0.95)
-        # print(data_dict.keys())
+        print(data_dict.keys())
+        # print(data_dict['img_name'])
+        # print(label)
         # exit()
+        # data_dict = denoise(data_dict, labels = label, root = self.root_path)
         inputs = data_dict['image']
+        print(inputs.shape)
+        print(type(inputs[0]))
+        print(data_dict['comp_high'].shape)
+        # inputs = denoise(inputs)
+        exit()
         high_quality_threshold = 0.60
         # print(inputs.shape)
         # exit()

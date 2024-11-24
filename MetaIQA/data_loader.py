@@ -110,6 +110,7 @@ class DataLoader(object):
 		elif dataset == 'koniq':
 			self.data = folders.Koniq_10kFolder(
 				self.config,root=path, index=img_indx, transform=transforms, patch_num=patch_num)
+		elif dataset == 'fblive':
 			self.data = folders.FBLIVEFolder(
 				self.config,root=path, index=img_indx, transform=transforms, patch_num=patch_num)
 		elif dataset == 'tid2013':
