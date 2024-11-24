@@ -304,6 +304,7 @@ class METAIQASolver(object):
         # print(label)
         # exit()
         # data_dict = denoise(data_dict, labels = label, root = self.root_path)
+        data_dict = denoise(data_dict)
         inputs = data_dict['image']
         print(inputs.shape)
         print(type(inputs[0]))

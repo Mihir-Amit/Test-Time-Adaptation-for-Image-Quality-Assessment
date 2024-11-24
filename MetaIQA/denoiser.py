@@ -34,7 +34,7 @@ parent_dir = os.path.abspath(os.path.join(__file__, "../../"))  # Go up two leve
 scunet_dir = os.path.join(parent_dir, "Image_Denoising", "SCUNet") 
 sys.path.append(scunet_dir)   
 
-# from scunet_denoising import *
+from scunet_denoising import *
 
 from skimage.util import random_noise
 from PIL import Image
@@ -132,10 +132,9 @@ def denoise(data_dict, labels, root):
     for i in range(img_list.shape[0]):
         if(labels[i] <=0.2):
             image = denoise_image_direct(img_list[i])
-            img_list[i] = image
-    data_dict['comp_high'], data_dict['comp_low'] = compress(img_list,transform_LIVE, root)
-    data_dict['nos_low'], data_dict['nos_high'] = noisy(path,transform_LIVE     )
-
-    return img_list
+            data_dict['image'][i] = image
+            data_dict['comp_high'][i], data_dict['comp_low'][i] = compress(image,transform_LIVE, root)
+            data_dict['nos_low'], data_dict['nos_high'] = noisy(image,transform_LIVE)
+    return data_dict
 
 
