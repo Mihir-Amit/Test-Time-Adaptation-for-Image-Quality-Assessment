@@ -12,6 +12,7 @@ from util import *
 
 def processing(data_dict,sample,transform,root,path,config):
     if config.rank:
+        # data_dict
         data_dict['comp_high'], data_dict['comp_low'] = compress(sample,transform, root)
         data_dict['nos_low'], data_dict['nos_high'] = noisy(path,transform)
 
