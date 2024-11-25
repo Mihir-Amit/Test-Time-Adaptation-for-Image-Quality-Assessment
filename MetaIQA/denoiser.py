@@ -130,11 +130,12 @@ def compress(image,transform,root):
 def denoise(data_dict, labels, root):
     img_list = data_dict['image']
     for i in range(img_list.shape[0]):
-        if(labels[i] <=0.2):
+        if(labels[i] >= 35):
             image = denoise_image_direct(img_list[i])
-            data_dict['image'][i] = image
+            image = Image.fromarray(image)
+            data_dict['image'][i] = transform_LIVE(image)
             data_dict['comp_high'][i], data_dict['comp_low'][i] = compress(image,transform_LIVE, root)
-            data_dict['nos_low'], data_dict['nos_high'] = noisy(image,transform_LIVE)
+            data_dict['nos_low'][i], data_dict['nos_high'][i] = noisy(image,transform_LIVE)
     return data_dict
 
 

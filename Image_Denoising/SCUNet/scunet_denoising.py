@@ -1,9 +1,10 @@
 import torch
 from models.network_scunet import SCUNet as net
 from utils import utils_image as util
+import numpy as np
 
 
-def denoise_image_direct(input_image, model_name='scunet_color_real_psnr', model_zoo='model_zoo', device=None):
+def denoise_image_direct(input_image, model_name='scunet_color_real_psnr', model_zoo='../Image_Denoising/SCUNet/model_zoo', device=None):
     """
     Denoise an image directly without saving to disk.
 
@@ -34,7 +35,10 @@ def denoise_image_direct(input_image, model_name='scunet_color_real_psnr', model
     if isinstance(input_image, np.ndarray):
         img_tensor = util.uint2tensor4(input_image).to(device)
     elif isinstance(input_image, torch.Tensor):
-        img_tensor = input_image.to(device)
+        if input_image.dim() == 3:  # (C, H, W)
+            img_tensor = input_image.unsqueeze(0).to(device)  # Add batch dimension
+        elif input_image.dim() == 4:  # (B, C, H, W)
+            img_tensor = input_image.to(device)
     else:
         raise TypeError("Input image must be a NumPy array or a PyTorch tensor.")
 

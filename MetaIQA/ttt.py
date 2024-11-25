@@ -303,8 +303,8 @@ class METAIQASolver(object):
         # print(data_dict['img_name'])
         # print(label)
         # exit()
-        # data_dict = denoise(data_dict, labels = label, root = self.root_path)
-        data_dict = denoise(data_dict)
+        data_dict = denoise(data_dict, labels = label, root = self.root_path)
+        # data_dict = denoise(data_dict)
         inputs = data_dict['image']
         print(inputs.shape)
         print(type(inputs[0]))
@@ -449,9 +449,9 @@ class METAIQASolver(object):
                 #         dist_high = torch.cat([dist_high[0:i], dist_high[i+1:-1]])
                 #         dist_low = torch.cat([dist_low[0:i], dist_low[i+1:-1]])
                 
-                dist_low = dist_low[high_quality_mask == 1.0]
-                dist_high = dist_high[high_quality_mask == 1.0]
-                target = target[high_quality_mask == 1.0]
+                # dist_low = dist_low[high_quality_mask == 1.0]
+                # dist_high = dist_high[high_quality_mask == 1.0]
+                # target = target[high_quality_mask == 1.0]
 
                 # print(dist_high)
                 # print(dist_low)
